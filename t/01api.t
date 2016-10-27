@@ -17,11 +17,15 @@ use vars qw/$OWNER_ID $OWNER_DISPLAYNAME/;
 
 my $aws_access_key_id     = $ENV{'AWS_ACCESS_KEY_ID'};
 my $aws_secret_access_key = $ENV{'AWS_ACCESS_KEY_SECRET'};
+my $host               = $ENV{'AWS_S3_HOST'};
+my $secure             = $ENV{'AWS_S3_USE_SSL'};
 
 my $s3 = Net::Amazon::S3->new(
     {   aws_access_key_id     => $aws_access_key_id,
         aws_secret_access_key => $aws_secret_access_key,
         retry                 => 1,
+        ($host ? ( host => $host ) : () ),
+        ($secure ? ( secure => $secure ) : () ),
     }
 );
 

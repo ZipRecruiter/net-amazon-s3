@@ -108,6 +108,7 @@ Development of this code happens here: https://github.com/rustyconover/net-amazo
 use Carp;
 use Digest::HMAC_SHA1;
 
+use HTTP::Async;
 use Net::Amazon::S3::Bucket;
 use Net::Amazon::S3::Client;
 use Net::Amazon::S3::Client::Bucket;
@@ -147,6 +148,7 @@ has 'host'    => ( is => 'ro', isa => 'Str',  required => 0, default => 's3.amaz
 has 'use_virtual_host' => ( is => 'rw', isa => 'Bool', required => 0, default => 0 );
 has 'libxml' => ( is => 'rw', isa => 'XML::LibXML',    required => 0 );
 has 'ua'     => ( is => 'rw', isa => 'LWP::UserAgent', required => 0 );
+has 'async_ua'=> ( is => 'rw', isa => 'HTTP::Async', required => 0 );
 has 'err'    => ( is => 'rw', isa => 'Maybe[Str]',     required => 0 );
 has 'errstr' => ( is => 'rw', isa => 'Maybe[Str]',     required => 0 );
 has 'aws_session_token' => ( is => 'rw', isa => 'Str', required => 0 );
@@ -734,6 +736,29 @@ sub _do_http {
     $self->err(undef);
     $self->errstr(undef);
     return $self->ua->request( $http_request, $filename );
+}
+
+# centralize all HTTP work, for debugging
+sub _do_async_http {
+    my ( $self, $http_request ) = @_;
+
+    confess 'Need HTTP::Request object'
+        if ( ref($http_request) ne 'HTTP::Request' );
+
+    # convenient time to reset any error conditions
+    $self->err(undef);
+    $self->errstr(undef);
+    return $self->async_ua->request( $http_request );
+}
+
+sub _handle_async_response {
+    my ( $self, $response ) = @_;
+
+    my $content  = $response->content;
+
+    return $content unless $response->content_type eq 'application/xml';
+    return unless $content;
+    return $self->_xpc_of_content($content);
 }
 
 sub _send_request_expect_nothing {
